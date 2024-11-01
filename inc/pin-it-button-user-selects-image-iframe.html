@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style type="text/css">
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            #SEPinItButton {
+                position: absolute;
+                background: url(//d3io1k5o0zdpqr.cloudfront.net/images/pinit6.png);
+                font: 11px Arial, sans-serif;
+                text-indent: -9999em;
+                font-size: .01em;
+                color: #CD1F1F;
+                height: 20px;
+                width: 43px;
+                background-position: 0 -7px;
+            }
+            #SEPinItButton:hover {
+                background-position: 0 -28px;
+            }
+            #SEPinItButton:active {
+                background-position: 0 -49px;
+            }
+            #SEPinItButton.pinned {
+                background-position: 0 -70px !important;
+            }
+            #SECountPointer {
+                position: absolute;
+                z-index: 1;
+                background: url(//d3io1k5o0zdpqr.cloudfront.net/images/pinit6.png);
+                text-indent: -9999em;
+                font-size: .01em;
+                color: #FFF;
+            }
+            #SECountBubble {
+                position: absolute;
+                border: 1px solid #C9C5C5;
+                color: #777;
+                background-color: #FCF9F9;
+                border-radius: 1px;
+            }
+            body.horizontal #SECountPointer {
+                left: 43px;
+                height: 18px;
+                width: 4px;
+                background-position: -43px -8px;
+            }
+            body.horizontal #SECountBubble {
+                top: 1px;
+                left: 46px;
+                height: 10px;
+                line-height: 10px;
+                padding: 2px 5px 4px 5px;
+                font: 10px Arial, Helvetica, sans-serif;
+                display: inline-block;
+            }
+            body.vertical #SEPinItButton {
+                top: 38px;
+            }
+            body.vertical #SECountPointer {
+                top: 31px;
+                height: 7px;
+                width: 41px;
+                background-position: 0 0;
+            }
+            body.vertical #SECountBubble {
+                left: 1px;
+                height: 21px;
+                width: 39px;
+                font: 12px Arial, Helvetica, sans-serif;
+                line-height: 12px;
+                padding: 9px 0 0;
+                text-align: center;
+            }
+            body.none #SEPinItCount {
+                display: none;
+            }
+        </style>
+        
+        <script type="text/javascript">
+            var countLayout = 'horizontal';
+            var alwaysShowCount = false;
+            
+            function pinIt2(pinItButton, pinUrl) {
+                return function(e) {
+					
+					parent.execPinmarklet();
+                    
+                    return false;
+                };
+            }
+
+            function receiveCount(data) {
+                if (data['error'])
+                    return;
+
+                var targetUrl = data['url'];
+                var pinItCount = document.getElementById('SEPinItCount');
+                var countBubble = document.getElementById('SECountBubble');
+
+                if (!alwaysShowCount && data['count'] < 1 && countLayout === 'horizontal') 
+                    return;
+
+                pinItCount.style.display = 'block';
+                var count = data['count'];
+                if (count > 999 && count <= 999999)
+                    count = Math.floor(count / 1000) + "K+";
+                else if (count > 999999 && count <= 999999999)
+                    count = Math.floor(count / 1000000) + "M+";
+                else if (count > 999999999)
+                    count = "++";
+                countBubble.innerHTML = count;
+            }
+
+            window.onload = function() {
+                var pinItButton = document.getElementById('SEPinItButton');
+                var pinItCount = document.getElementById('SEPinItCount');
+
+                // Parse args
+                var vars = {}, url = window.location.href;
+                var pairs = url.slice(url.indexOf('?') + 1).split('&');
+                for (var i = 0; i < pairs.length; i++) {
+                    var parts = pairs[i].split('=');
+                    vars[parts[0]] = parts[1];
+                }
+
+                countLayout = vars['layout'] || countLayout;
+                alwaysShowCount = vars['count'] || alwaysShowCount;
+
+                // Apply count layout class
+                document.body.className = countLayout;
+
+                // Build pin URL
+                delete vars['layout'];
+                delete vars['count'];
+                var sep = '?', pinUrl = 'http://pinterest.com/pin/create/button/';
+                for (var i in vars) {
+                    pinUrl += sep + i + '=' + vars[i];
+                    sep = '&';
+                }
+                
+                // Button click handler
+                if (document.addEventListener)
+                    pinItButton.addEventListener('click', pinIt2(pinItButton, pinUrl), false);
+                else if (document.attachEvent)
+                    pinItButton.attachEvent('onclick', pinIt2(pinItButton, pinUrl));
+				
+				
+				
+                // Request count from API
+                if (countLayout != 'none' || alwaysShowCount) {
+                    var targetUrl = vars['url'] || vars['media']; 
+                    var snode = document.createElement('script');
+                    var hnode = document.getElementsByTagName('head')[0];
+                    snode.setAttribute('async', 'true');
+                    snode.setAttribute('src', '//api.pinterest.com/v1/urls/count.json?callback=receiveCount&url='+targetUrl);
+                    hnode.appendChild(snode);
+                }
+            };
+        </script>
+    </head>
+    
+    <body>
+        <a href="javascript:void(0)" id="SEPinItButton" title="Pin it on Pinterest">Pin it</a>
+        <div id="SEPinItCount" style="display:none;">
+            <div id="SECountPointer">&laquo;</div>
+            <div id="SECountBubble">0</div>
+        </div>
+    </body>
+</html>
